@@ -1,0 +1,20 @@
+# Zero-Trust database isolation: only posture-api pods may connect to PostgreSQL port 5432.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-to-postgres
+  namespace: posture-monitor
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: posture-api
+      ports:
+        - protocol: TCP
+          port: 5432

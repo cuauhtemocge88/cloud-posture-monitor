@@ -1,0 +1,53 @@
+name: CI - Terraform & Kubernetes Security Checks
+
+on:
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - "k8s/**"
+  push:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - "k8s/**"
+
+jobs:
+  terraform-checks:
+    name: Terraform Format & Validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./infra/terraform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init (no backend)
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  iac-misconfig-scan:
+    name: Trivy IaC Misconfiguration Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan Terraform & Kubernetes manifests
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          exit-code: "0"
+          severity: CRITICAL,HIGH

@@ -1,0 +1,18 @@
+{
+  "name": "cloud-posture-monitor",
+  "version": "1.0.0",
+  "description": "Lightweight HTTP health and security-headers posture monitoring API for DevSecOps/Cloud labs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "pg": "^8.13.1",
+    "prom-client": "^15.1.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

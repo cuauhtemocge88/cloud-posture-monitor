@@ -6,11 +6,13 @@ on:
     paths:
       - "infra/terraform/**"
       - "k8s/**"
+      - "charts/**"
   push:
     branches: [main]
     paths:
       - "infra/terraform/**"
       - "k8s/**"
+      - "charts/**"
 
 jobs:
   terraform-checks:
@@ -52,3 +54,16 @@ jobs:
           format: table
           exit-code: "0"
           severity: CRITICAL,HIGH
+
+  helm-checks:
+    name: Helm Chart Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Lint Helm Chart
+        run: helm lint charts/cloud-posture-monitor

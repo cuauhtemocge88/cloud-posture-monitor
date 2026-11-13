@@ -1,0 +1,9 @@
+apiVersion: v2
+name: cloud-posture-monitor
+description: Helm chart for Cloud Posture Monitor (DevSecOps API + PostgreSQL + CronJob)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Cuauhtémoc González Encinas
+    email: cuauhtemocge88@gmail.com

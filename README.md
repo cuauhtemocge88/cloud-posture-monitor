@@ -1,7 +1,14 @@
 # Cloud Posture Monitor (DevOps / DevSecOps Lab)
 
+[![CI - Test, Security Scan & Container Build](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/ci.yml)
+[![CI - Terraform & Kubernetes Security Checks](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/terraform-validate.yml/badge.svg)](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/terraform-validate.yml)
+![Docker Multi-Stage](https://img.shields.io/badge/docker-multi--stage-blue?logo=docker)
+![Kubernetes & Helm](https://img.shields.io/badge/helm-chart%20v1.0.0-0F1689?logo=helm)
+![Terraform AWS](https://img.shields.io/badge/terraform-AWS%20OIDC-844FBA?logo=terraform)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 API ligera en Node.js + PostgreSQL diseñada para practicar y demostrar el stack estándar de DevOps/Cloud:
-**Docker -> GitHub Actions (CI + Trivy + Gitleaks) -> Kubernetes (`kind` / NetworkPolicy / CronJob) -> Terraform + AWS (OIDC)**.
+**Docker -> GitHub Actions (CI + Trivy + Gitleaks) -> Kubernetes (Helm / NetworkPolicy / CronJob) -> Terraform + AWS (OIDC)**.
 
 ## Arquitectura
 
@@ -82,7 +89,23 @@ curl -X POST http://localhost:8080/api/scan
 curl http://localhost:8080/api/posture
 ```
 
-## Despliegue local en Kubernetes (`kind`)
+## Despliegue en Kubernetes (con Helm)
+
+```bash
+# Validar la sintaxis del chart
+helm lint charts/cloud-posture-monitor
+
+# Instalar el release en Kubernetes
+helm upgrade --install posture-release ./charts/cloud-posture-monitor \
+  --create-namespace \
+  --namespace posture-monitor \
+  --set postgres.password="tu_password_seguro"
+
+# Verificar los pods y servicios
+kubectl -n posture-monitor get all
+```
+
+## Despliegue alternativo con manifiestos directos (`kubectl`)
 
 ```bash
 kind create cluster --name posture-lab

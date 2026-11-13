@@ -1,6 +1,7 @@
 const express = require('express');
 const client = require('prom-client');
 const { validateTargetUrl, scanTargetUrl } = require('./scanner');
+const { renderDashboardHtml } = require('./dashboard');
 
 /**
  * Creates a configured Express application with observability, security headers,
@@ -56,6 +57,11 @@ function createApp({ pool = null, fetchFn = fetch, allowInMemory = true } = {}) 
   const memScans = [];
   let memTargetSeq = 1;
   let memScanSeq = 1;
+
+  // Visual dashboard UI at root without altering JSON API or Prometheus routes
+  app.get('/', (req, res) => {
+    res.type('html').send(renderDashboardHtml());
+  });
 
   // Liveness probe (Kubernetes restarts pod only if process itself is dead)
   app.get('/healthz', (req, res) => {

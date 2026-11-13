@@ -16,6 +16,23 @@ function startTestServer(app) {
   });
 }
 
+test('GET / returns the HTML visual dashboard', async () => {
+  const app = createApp();
+  const { server, baseUrl } = await startTestServer(app);
+
+  try {
+    const res = await fetch(`${baseUrl}/`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type') || '', /text\/html/);
+    const html = await res.text();
+    assert.match(html, /Cloud Posture Monitor/);
+    assert.match(html, /\/api\/targets/);
+    assert.match(html, /\/api\/scan/);
+  } finally {
+    server.close();
+  }
+});
+
 test('GET /healthz returns ok and defensive security headers', async () => {
   const app = createApp();
   const { server, baseUrl } = await startTestServer(app);

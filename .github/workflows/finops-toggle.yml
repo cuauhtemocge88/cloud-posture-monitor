@@ -1,0 +1,143 @@
+name: FinOps On-Demand Toggle & Cost Guard
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'FinOps Action (Start/Stop ECS Fargate service)'
+        required: true
+        default: 'stop'
+        type: choice
+        options:
+          - 'stop'
+          - 'start'
+          - 'status'
+  schedule:
+    # Auto-stop safety net every day at 04:00 UTC (10:00 PM CST) to guarantee zero charges
+    - cron: '0 4 * * *'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  finops-control:
+    name: Manage AWS ECS Lab Environment
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECS_CLUSTER: cloud-posture-monitor-dev-cluster
+      ECS_SERVICE: cloud-posture-monitor-dev-service
+      ROLE_ARN: arn:aws:iam::992513693686:role/cloud-posture-monitor-dev-github-oidc-role
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          role-session-name: GitHubActions-FinOps
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Determine Action
+        id: parse_action
+        run: |
+          ACTION="${{ github.event.inputs.action }}"
+          if [ -z "$ACTION" ]; then
+            echo "Triggered by schedule. Defaulting to stop."
+            ACTION="stop"
+          fi
+          echo "action=$ACTION" >> $GITHUB_OUTPUT
+
+      # -------------------------------------------------------------
+      # ACTION: STOP (Sleep / Zero Cost)
+      # -------------------------------------------------------------
+      - name: Stop ECS Service (Scale to 0)
+        if: steps.parse_action.outputs.action == 'stop'
+        run: |
+          echo "Scaling ECS service down to 0 tasks..."
+          aws ecs update-service \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service "${{ env.ECS_SERVICE }}" \
+            --desired-count 0 > /dev/null
+
+          echo "## 🛑 FinOps: Entorno en Hibernación ($0.00 USD/hr)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Recurso | Estado | Costo de Cómputo |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **ECS Fargate** | 0 tareas activas | **$0.00 / hr** |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Public IPv4** | Liberada | **$0.00 / hr** |" >> $GITHUB_STEP_SUMMARY
+          echo "| **VPC / Subnets** | Preservadas | **$0.00** |" >> $GITHUB_STEP_SUMMARY
+          echo "| **ECR Registry** | Imagen Docker preservada | Free Tier |" >> $GITHUB_STEP_SUMMARY
+          echo "| **IAM & OIDC** | Activo y configurado | **$0.00** |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 💡 **Para reactivarlo antes de una entrevista:** Ejecuta este workflow con la opción \`start\` y en menos de 60 segundos tendrás la URL pública en vivo." >> $GITHUB_STEP_SUMMARY
+
+      # -------------------------------------------------------------
+      # ACTION: START (Wake up for Interview / Demo)
+      # -------------------------------------------------------------
+      - name: Start ECS Service (Scale to 1)
+        if: steps.parse_action.outputs.action == 'start'
+        run: |
+          echo "Scaling ECS service up to 1 task..."
+          aws ecs update-service \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service "${{ env.ECS_SERVICE }}" \
+            --desired-count 1 > /dev/null
+
+          echo "Waiting for Fargate task to reach RUNNING status..."
+          PUBLIC_IP=""
+          for i in {1..20}; do
+            TASK_ARN=$(aws ecs list-tasks --cluster "${{ env.ECS_CLUSTER }}" --service-name "${{ env.ECS_SERVICE }}" --desired-status RUNNING --query "taskArns[0]" --output text)
+            if [ -n "$TASK_ARN" ] && [ "$TASK_ARN" != "None" ]; then
+              ENI_ID=$(aws ecs describe-tasks --cluster "${{ env.ECS_CLUSTER }}" --tasks "$TASK_ARN" --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" --output text)
+              if [ -n "$ENI_ID" ] && [ "$ENI_ID" != "None" ]; then
+                PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids "$ENI_ID" --query "NetworkInterfaces[0].Association.PublicIp" --output text)
+                if [ -n "$PUBLIC_IP" ] && [ "$PUBLIC_IP" != "None" ]; then
+                  echo "Found Public IP: $PUBLIC_IP"
+                  break
+                fi
+              fi
+            fi
+            echo "Waiting 5 seconds ($i/20)..."
+            sleep 5
+          done
+
+          echo "## 🚀 FinOps: Entorno en Vivo para Demostración" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$PUBLIC_IP" ] && [ "$PUBLIC_IP" != "None" ]; then
+            echo "| Propiedad | Valor |" >> $GITHUB_STEP_SUMMARY
+            echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+            echo "| **Cluster** | \`${{ env.ECS_CLUSTER }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Servicio** | \`${{ env.ECS_SERVICE }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **IP Pública** | \`$PUBLIC_IP\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Endpoint Health** | [http://$PUBLIC_IP:8080/healthz](http://$PUBLIC_IP:8080/healthz) |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Endpoint Ready** | [http://$PUBLIC_IP:8080/readyz](http://$PUBLIC_IP:8080/readyz) |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Endpoint Metrics** | [http://$PUBLIC_IP:8080/metrics](http://$PUBLIC_IP:8080/metrics) |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> ⚠️ **Recordatorio FinOps:** Al terminar la entrevista, ejecuta este workflow con la opción \`stop\` (o el auto-apagado programado lo apagará a las 10:00 PM CST)." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "El contenedor está iniciando en AWS Fargate. Estará disponible en breve en la consola de ECS." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # -------------------------------------------------------------
+      # ACTION: STATUS
+      # -------------------------------------------------------------
+      - name: Query Service Status
+        if: steps.parse_action.outputs.action == 'status'
+        run: |
+          STATUS=$(aws ecs describe-services --cluster "${{ env.ECS_CLUSTER }}" --services "${{ env.ECS_SERVICE }}" --query "services[0].[status,desiredCount,runningCount]" --output text)
+          read -r SVC_STATUS DESIRED RUNNING <<< "$STATUS"
+
+          echo "## ℹ️ FinOps: Estado Actual del Entorno" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Estado del Servicio:** \`$SVC_STATUS\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tareas Deseadas:** \`$DESIRED\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tareas en Ejecución:** \`$RUNNING\`" >> $GITHUB_STEP_SUMMARY
+          if [ "$DESIRED" -eq 0 ]; then
+            echo "- **Costo de Cómputo Actual:** **$0.00 / hr** (Hibernado)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Costo de Cómputo Actual:** ~$0.015 / hr (En ejecución)" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -11,12 +11,22 @@
 API ligera en Node.js + PostgreSQL diseñada para practicar y demostrar el stack estándar de DevOps/Cloud:
 **Docker -> GitHub Actions (CI + Trivy + Gitleaks) -> Kubernetes (Helm / NetworkPolicy / CronJob) -> Terraform + AWS ECS Fargate (OIDC)**.
 
-## 🚀 Despliegue en vivo en AWS
+## 🚀 Despliegue en vivo en AWS & Control FinOps
 
 La infraestructura fue aprovisionada íntegramente mediante **Terraform** y desplegada automáticamente vía **GitHub Actions con autenticación OIDC**:
-* **Live Healthcheck Endpoint:** [http://44.195.59.213:8080/healthz](http://44.195.59.213:8080/healthz)
 * **Arquitectura Cloud:** Amazon ECS Fargate en VPC dedicada (`10.20.0.0/16`), subnets públicas multi-AZ, registro privado Amazon ECR con análisis de vulnerabilidades on-push y logs en CloudWatch.
 * **Seguridad sin credenciales estáticas:** Cero AWS access keys en GitHub Secrets; se utiliza intercambio de tokens web OIDC federado (`sts:AssumeRoleWithWebIdentity`).
+* **FinOps On-Demand ($0.00/mes en reposo):** Para optimizar costos, el servicio Fargate se mantiene hibernado con `desired_count = 0`. Se enciende bajo demanda en 30 segundos con un solo clic desde GitHub Actions cuando un entrevistador o evaluador lo solicita.
+
+### 🎮 Cómo encender/apagar el entorno en vivo (1 Clic)
+
+1. Ve a la pestaña **[Actions > FinOps On-Demand Toggle](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/finops-toggle.yml)**.
+2. Haz clic en **Run workflow**.
+3. Selecciona:
+   * `start`: Enciende 1 tarea Fargate, espera a que esté lista (~30 seg), detecta la IP pública asignada dinámicamente y publica el enlace en vivo en el resumen de la ejecución.
+   * `stop`: Escala el servicio a 0 tareas y libera la IP pública (costo: **$0.00 USD/hr**).
+   * `status`: Muestra el estado actual y el costo asociado.
+4. **Auto-Apagado de Seguridad:** Incluye un cron diario que apaga automáticamente cualquier tarea activa a las 22:00 CST para garantizar cero cargos sorpresa.
 
 ## Arquitectura
 

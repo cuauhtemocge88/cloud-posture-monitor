@@ -168,7 +168,10 @@ resource "aws_iam_role_policy" "github_deploy_least_privilege" {
         Action = [
           "ecs:UpdateService",
           "ecs:DescribeServices",
-          "ecs:RegisterTaskDefinition"
+          "ecs:DescribeTasks",
+          "ecs:ListTasks",
+          "ecs:RegisterTaskDefinition",
+          "ec2:DescribeNetworkInterfaces"
         ]
         Resource = "*"
       },

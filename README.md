@@ -2,13 +2,21 @@
 
 [![CI - Test, Security Scan & Container Build](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/ci.yml)
 [![CI - Terraform & Kubernetes Security Checks](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/terraform-validate.yml/badge.svg)](https://github.com/cuauhtemocge88/cloud-posture-monitor/actions/workflows/terraform-validate.yml)
+![AWS ECS](https://img.shields.io/badge/AWS-ECS%20Fargate%20Live-FF9900?logo=amazon-aws)
 ![Docker Multi-Stage](https://img.shields.io/badge/docker-multi--stage-blue?logo=docker)
 ![Kubernetes & Helm](https://img.shields.io/badge/helm-chart%20v1.0.0-0F1689?logo=helm)
 ![Terraform AWS](https://img.shields.io/badge/terraform-AWS%20OIDC-844FBA?logo=terraform)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 API ligera en Node.js + PostgreSQL diseñada para practicar y demostrar el stack estándar de DevOps/Cloud:
-**Docker -> GitHub Actions (CI + Trivy + Gitleaks) -> Kubernetes (Helm / NetworkPolicy / CronJob) -> Terraform + AWS (OIDC)**.
+**Docker -> GitHub Actions (CI + Trivy + Gitleaks) -> Kubernetes (Helm / NetworkPolicy / CronJob) -> Terraform + AWS ECS Fargate (OIDC)**.
+
+## 🚀 Despliegue en vivo en AWS
+
+La infraestructura fue aprovisionada íntegramente mediante **Terraform** y desplegada automáticamente vía **GitHub Actions con autenticación OIDC**:
+* **Live Healthcheck Endpoint:** [http://44.195.59.213:8080/healthz](http://44.195.59.213:8080/healthz)
+* **Arquitectura Cloud:** Amazon ECS Fargate en VPC dedicada (`10.20.0.0/16`), subnets públicas multi-AZ, registro privado Amazon ECR con análisis de vulnerabilidades on-push y logs en CloudWatch.
+* **Seguridad sin credenciales estáticas:** Cero AWS access keys en GitHub Secrets; se utiliza intercambio de tokens web OIDC federado (`sts:AssumeRoleWithWebIdentity`).
 
 ## Arquitectura
 

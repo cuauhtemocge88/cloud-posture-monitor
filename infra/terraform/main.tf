@@ -130,7 +130,7 @@ resource "aws_iam_role" "github_deploy" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:cuauhtemocge88/cloud-posture-monitor:*"
+          "token.actions.githubusercontent.com:sub" = "repo:cuauhtemocge88*/cloud-posture-monitor*:*"
         }
       }
     }]
@@ -153,6 +153,9 @@ resource "aws_iam_role_policy" "github_deploy_least_privilege" {
         Effect = "Allow"
         Action = [
           "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:DescribeRepositories",
           "ecr:CompleteLayerUpload",
           "ecr:InitiateLayerUpload",
           "ecr:PutImage",

@@ -133,10 +133,49 @@ jobs:
         with:
           context: ./app
           push: true
-          tags: |
-            ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
-            ${{ vars.ECR_REPOSITORY }}:latest
+          tags: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
 
       - name: Deploy new task to Amazon ECS
         run: |
-          aws ecs update-service --cluster ${{ vars.ECS_CLUSTER }} --service ${{ vars.ECS_SERVICE }} --force-new-deployment
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          IMAGE_URI="${{ vars.ECR_REPOSITORY }}:${{ github.sha }}"
+          cat <<EOF > /tmp/task-def.json
+          {
+            "family": "cloud-posture-monitor-dev",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "256",
+            "memory": "512",
+            "executionRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/cloud-posture-monitor-dev-ecs-exec-role",
+            "taskRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/cloud-posture-monitor-dev-ecs-task-role",
+            "containerDefinitions": [
+              {
+                "name": "api",
+                "image": "${IMAGE_URI}",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 8080,
+                    "hostPort": 8080,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environment": [
+                  { "name": "PORT", "value": "8080" },
+                  { "name": "ALLOW_IN_MEMORY", "value": "true" }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/cloud-posture-monitor-dev",
+                    "awslogs-region": "${{ vars.AWS_REGION }}",
+                    "awslogs-stream-prefix": "api"
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+          TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file:///tmp/task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          aws ecs update-service --cluster "${{ vars.ECS_CLUSTER }}" --service "${{ vars.ECS_SERVICE }}" --task-definition "$TASK_DEF_ARN" > /dev/null
+          echo "Updated ECS service with task definition: $TASK_DEF_ARN"

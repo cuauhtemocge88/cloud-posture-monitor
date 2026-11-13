@@ -1,5 +1,5 @@
 aws_region   = "us-east-1"
 project_name = "cloud-posture-monitor"
 environment  = "dev"
-github_repo  = "tu-usuario-github/cloud-posture-monitor"
+github_repo  = "cuauhtemocge88/cloud-posture-monitor"
 image_tag    = "latest"

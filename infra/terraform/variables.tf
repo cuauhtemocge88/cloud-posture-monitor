@@ -19,7 +19,7 @@ variable "environment" {
 variable "github_repo" {
   description = "GitHub repository in owner/repo format allowed to assume the OIDC deploy role"
   type        = string
-  default     = "tu-usuario/cloud-posture-monitor"
+  default     = "cuauhtemocge88/cloud-posture-monitor"
 }
 
 variable "image_tag" {

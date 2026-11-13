@@ -107,7 +107,11 @@ resource "aws_ecr_lifecycle_policy" "api" {
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1",
+    "1c5824a670c2a819089534cc3ff1b17a41753457",
+    "d367a47959a77b088bec4fe3e7dd3ec9ba733ab5"
+  ]
 }
 
 resource "aws_iam_role" "github_deploy" {
